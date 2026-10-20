@@ -1,0 +1,66 @@
+name: CI/CD Pipeline - Build & Test
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  continuous-integration:
+    name: Build and Run Automated Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 1. Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 2. Set Up Node.js Environment (v20)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 3. Detect Project Working Directory
+        id: detect-dir
+        run: |
+          if [ -d "pra-12/backend" ]; then
+            echo "Using pra-12 project structure"
+            echo "BACKEND_PATH=pra-12/backend" >> $GITHUB_ENV
+            echo "FRONTEND_PATH=pra-12/frontend" >> $GITHUB_ENV
+          elif [ -d "backend" ]; then
+            echo "Using root project structure"
+            echo "BACKEND_PATH=backend" >> $GITHUB_ENV
+            echo "FRONTEND_PATH=frontend" >> $GITHUB_ENV
+          else
+            echo "Using current directory"
+            echo "BACKEND_PATH=." >> $GITHUB_ENV
+            echo "FRONTEND_PATH=." >> $GITHUB_ENV
+          fi
+
+      - name: 4. Install Backend Dependencies
+        run: |
+          cd ${{ env.BACKEND_PATH }}
+          npm install
+
+      - name: 5. Run Backend Automated Unit Tests
+        run: |
+          cd ${{ env.BACKEND_PATH }}
+          npm test
+
+      - name: 6. Install Frontend Dependencies
+        run: |
+          cd ${{ env.FRONTEND_PATH }}
+          npm install
+
+      - name: 7. Build Frontend Application (Production Bundle)
+        run: |
+          cd ${{ env.FRONTEND_PATH }}
+          npm run build
+
+      - name: 8. CI Pipeline Status Summary
+        if: always()
+        run: |
+          echo "=============================================="
+          echo "CI Pipeline Job Completed!"
+          echo "Status: ${{ job.status }}"
+          echo "=============================================="
